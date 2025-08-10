@@ -1,3 +1,4 @@
+prometheus_client==0.22.1
 flask
 numpy
 scikit-learn
