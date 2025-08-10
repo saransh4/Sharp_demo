@@ -46,11 +46,11 @@ def sharp_demo(previous_model, new_data, task_id):
     print(f"✅ {adaptation_type} - Accuracy: {accuracy:.3f} - Time: {training_time:.2f}s")
     
     return {
-        "model": model,
+        #"model": model,
         "accuracy": accuracy,
         "adaptation_type": adaptation_type,
         "training_time": training_time
-    }
+    }, model
 
 # Demo Workflow - Run this to see SHARP in action
 def run_demo():
@@ -79,8 +79,8 @@ def run_demo():
     results = []
     
     for task_id, (X, y) in enumerate(tasks):
-        result = sharp_demo(previous_model, (X, y), task_id)
-        previous_model = result["model"]
+        result, previous_model = sharp_demo(previous_model, (X, y), task_id)
+        #previous_model = result["model"]
         #print(previous_model)
         results.append(result)
     
@@ -94,7 +94,7 @@ def run_demo():
     return results
 
 # Run the demo
-results = run_demo()
+#results = run_demo()
 
 # Test the final model on new data
 # print("\n=== Testing Final Model ===")
