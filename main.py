@@ -4,31 +4,45 @@ import numpy as np
 from sklearn.neural_network import MLPClassifier
 from sklearn.metrics import accuracy_score
 from Sharp_demo import run_demo
+from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
 
 app = Flask(__name__)
+
+api_call_counter = Counter(
+    'api_requests_total',
+    'Total number of API requests',
+    ['endpoint', 'method']
+)
+
+response_time_histogram = Histogram(
+    'api_response_time_seconds',
+    'Histogram of API response times',
+    ['endpoint', 'method']
+)
+@app.before_request
+def start_timer():
+    request.start_time = time.time()
+
+@app.after_request
+def track_metrics(response):
+    if request.endpoint != 'metrics':  # avoid counting metrics calls
+        resp_time = time.time() - request.start_time
+        api_call_counter.labels(request.path, request.method).inc()
+        response_time_histogram.labels(request.path, request.method).observe(resp_time)
+    return response
 
 @app.route("/health", methods=["GET"])
 def health():
     return jsonify({
         "status": "ok",
         "timestamp": time.time(),
-        "task_id": sharp_mgr.task_id,
-        "model_trained": sharp_mgr.model is not None,
+        # "task_id": sharp_mgr.task_id,
+        # "model_trained": sharp_mgr.model is not None,
     })
 
-@app.route("/update", methods=["POST"])
-def update():
-    if not request.is_json:
-        return jsonify({"error": "JSON body required"}), 400
-    data = request.get_json()
-    if "X" not in data or "y" not in data:
-        return jsonify({"error": "Both 'X' and 'y' fields are required"}), 400
-    try:
-        result = sharp_mgr.update(data["X"], data["y"])
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-    return jsonify({"success": True, "result": result})
-
+@app.route('/metrics')
+def metrics():
+    return generate_latest(), 200, {'Content-Type': CONTENT_TYPE_LATEST}
 @app.route("/predict", methods=["POST"])
 def predict():
 
